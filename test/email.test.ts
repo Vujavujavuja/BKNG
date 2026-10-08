@@ -27,7 +27,7 @@ describe("buildInvite", () => {
     expect(invite).toContain("METHOD:REQUEST");
     expect(invite).toContain("DTSTART:20261012T080000Z");
     expect(invite).toContain("SEQUENCE:2");
-    expect(invite).toContain("DESCRIPTION:Line one\\nLine two\; with punctuation");
+    expect(invite).toContain("DESCRIPTION:Line one\\nLine two\\; with punctuation");
     expect(invite).toContain('ATTENDEE;CN="Ana"');
     expect(invite.replace(/\r\n /g, "")).toContain("SUMMARY:Intro call: Ana\\, and a very long title");
   });
