@@ -11,7 +11,7 @@ An open-source booking page you host yourself, for free, on Cloudflare. People p
 - **Busy times blocked** from any number of calendars: Proton, Google, iCloud and Outlook by private link, or Google by direct connection.
 - **Calendar invites for both sides**, attached to the confirmation emails, so the booking lands in any calendar.
 - **Any meeting link**: paste a Proton Meet, Zoom, Jitsi or other link per meeting type.
-- **A design editor** with live preview: logo, colors, background image, fonts, corner roundness, layout, step order, every label, and custom CSS if you want it.
+- **A design editor** with live preview: logo, colors, background image, any Google font or your own uploaded font files, button style, size and shape, date shapes (square to full circle) and styles, time button shapes, field roundness, line thickness, layout, step order, every label, and custom CSS if you want it.
 - **Email templates** you can reword and restyle, with a live preview and a test button.
 - **Reschedule and cancel links** for the person who booked, plus reminders.
 - **A dashboard** with upcoming bookings, a 30-day chart and a setup checklist.

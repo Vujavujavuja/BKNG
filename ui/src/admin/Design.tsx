@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { DEFAULT_THEME, FONTS, mergeDeep, type InfoBlockId, type Theme, type ThemeColors, type ThemeTexts } from "../../../shared/theme";
+import { cleanFontName, DEFAULT_THEME, FONTS, mergeDeep, ROUND_MAX, type InfoBlockId, type Theme, type ThemeColors, type ThemeTexts } from "../../../shared/theme";
 import type { EventType } from "../../../shared/types";
 import { BASE, send } from "../lib/api";
-import { Button, ColorField, Field, ImageDrop, Loading, PageHead, SaveBar, Sortable, Toggle, toast, toastError, useDraft, useLoad } from "./ui";
+import { Button, ColorField, Field, FontDrop, ImageDrop, Loading, PageHead, SaveBar, Sortable, Toggle, toast, toastError, useDraft, useLoad } from "./ui";
 
 interface SettingsData {
   site: Theme;
   general: { businessName: string };
 }
 
-const PRESETS: { name: string; colors: ThemeColors }[] = [
+const PRESETS: { name: string; colors: Omit<ThemeColors, "date"> }[] = [
   { name: "Light", colors: DEFAULT_THEME.colors },
   { name: "Dark", colors: { background: "#0f1115", card: "#181b22", text: "#f1f3f7", muted: "#9aa3b2", primary: "#7c9cff", primaryText: "#0f1115", border: "#2a2f3a" } },
   { name: "Warm", colors: { background: "#f7f1e8", card: "#fffdf9", text: "#2b2118", muted: "#7d6c5b", primary: "#c2571a", primaryText: "#ffffff", border: "#eadfce" } },
@@ -17,7 +17,7 @@ const PRESETS: { name: string; colors: ThemeColors }[] = [
   { name: "Mono", colors: { background: "#ffffff", card: "#ffffff", text: "#111111", muted: "#6b6b6b", primary: "#111111", primaryText: "#ffffff", border: "#dcdcdc" } },
 ];
 
-const COLOR_LABELS: Record<keyof ThemeColors, string> = {
+const COLOR_LABELS: Record<Exclude<keyof ThemeColors, "date">, string> = {
   background: "Page background",
   card: "Card",
   text: "Text",
@@ -55,6 +55,58 @@ const BLOCK_LABELS: Record<InfoBlockId, string> = {
   description: "Description",
   details: "Length, place and chosen time",
 };
+
+const roundLabel = (value: number, full: string) => (value >= ROUND_MAX ? full : `${value}px`);
+
+function Roundness(props: { label: string; value: number; onChange: (value: number) => void; full?: string }) {
+  return (
+    <Field label={`${props.label}: ${roundLabel(props.value, props.full ?? "fully round")}`} hint="Slide all the way right for fully round.">
+      <input type="range" min={0} max={ROUND_MAX} value={Math.min(props.value, ROUND_MAX)} onChange={(e) => props.onChange(Number(e.target.value))} />
+    </Field>
+  );
+}
+
+function FontPicker(props: { label: string; value: string; uploaded: string[]; onChange: (font: string) => void }) {
+  const known = props.value === "system" || FONTS.includes(props.value) || props.uploaded.includes(props.value);
+  const [other, setOther] = useState(!known);
+  return (
+    <div className="ad-stack" style={{ gap: 6 }}>
+      <Field label={props.label}>
+        <select
+          value={other ? "__other" : props.value}
+          onChange={(e) => {
+            setOther(e.target.value === "__other");
+            if (e.target.value !== "__other") props.onChange(e.target.value);
+          }}
+        >
+          <option value="system">Device default</option>
+          {props.uploaded.length > 0 && (
+            <optgroup label="Your fonts">
+              {props.uploaded.map((font) => (
+                <option key={font} value={font}>
+                  {font}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          <optgroup label="Popular">
+            {FONTS.filter((font) => font !== "system").map((font) => (
+              <option key={font} value={font}>
+                {font}
+              </option>
+            ))}
+          </optgroup>
+          <option value="__other">Another Google font…</option>
+        </select>
+      </Field>
+      {other && (
+        <Field label="Google font name" hint={<>Type the exact name from <a href="https://fonts.google.com" target="_blank" rel="noreferrer">fonts.google.com</a>, for example Bricolage Grotesque.</>}>
+          <input type="text" value={props.value === "system" ? "" : props.value} onChange={(e) => props.onChange(cleanFontName(e.target.value) || "system")} />
+        </Field>
+      )}
+    </div>
+  );
+}
 
 export function Design() {
   const settings = useLoad<SettingsData>("/admin/settings");
@@ -111,6 +163,7 @@ export function Design() {
   };
 
   const first = events.data?.eventTypes.find((e) => e.active);
+  const uploadedFonts = theme.customFonts.map((f) => f.name).filter(Boolean);
   const frameWidth = device === "mobile" ? 390 : 1180;
   const frameHeight = device === "mobile" ? 760 : 820;
   const scale = stageWidth ? Math.min(1, stageWidth / frameWidth) : 1;
@@ -146,12 +199,12 @@ export function Design() {
                       title={preset.name}
                       aria-label={`${preset.name} preset`}
                       style={{ background: `linear-gradient(135deg, ${preset.colors.background} 50%, ${preset.colors.primary} 50%)` }}
-                      onClick={() => set({ colors: preset.colors })}
+                      onClick={() => set({ colors: { ...preset.colors, date: "" } })}
                     />
                   ))}
                 </div>
               </div>
-              {(Object.keys(COLOR_LABELS) as (keyof ThemeColors)[]).map((key) => (
+              {(Object.keys(COLOR_LABELS) as (keyof typeof COLOR_LABELS)[]).map((key) => (
                 <ColorField key={key} label={COLOR_LABELS[key]} value={theme.colors[key]} onChange={(value) => setColor(key, value)} />
               ))}
             </div>
@@ -170,35 +223,100 @@ export function Design() {
           <details>
             <summary>Fonts</summary>
             <div className="ad-stack">
-              <Field label="Text font">
-                <select value={theme.font} onChange={(e) => set({ font: e.target.value })}>
-                  {FONTS.map((font) => (
-                    <option key={font} value={font}>
-                      {font === "system" ? "Device default" : font}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Heading font">
-                <select value={theme.headingFont} onChange={(e) => set({ headingFont: e.target.value })}>
-                  {FONTS.map((font) => (
-                    <option key={font} value={font}>
-                      {font === "system" ? "Device default" : font}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+              <FontPicker label="Text font" value={theme.font} uploaded={uploadedFonts} onChange={(font) => set({ font })} />
+              <FontPicker label="Heading font" value={theme.headingFont} uploaded={uploadedFonts} onChange={(headingFont) => set({ headingFont })} />
               <Field label={`Text size: ${theme.fontSize}px`}>
                 <input type="range" min={13} max={19} value={theme.fontSize} onChange={(e) => set({ fontSize: Number(e.target.value) })} />
               </Field>
+              <div>
+                <div className="ad-label" style={{ marginBottom: 6 }}>
+                  Upload your own font
+                </div>
+                <div className="ad-stack" style={{ gap: 8 }}>
+                  {theme.customFonts.map((font, i) => (
+                    <div key={font.assetId} className="ad-row" style={{ flexWrap: "nowrap" }}>
+                      <input
+                        type="text"
+                        value={font.name}
+                        aria-label="Font name"
+                        onChange={(e) => {
+                          const name = e.target.value.replace(/[^A-Za-z0-9 _-]/g, "");
+                          set({
+                            customFonts: theme.customFonts.map((f, j) => (j === i ? { ...f, name } : f)),
+                            font: theme.font === font.name ? name : theme.font,
+                            headingFont: theme.headingFont === font.name ? name : theme.headingFont,
+                          });
+                        }}
+                      />
+                      <Button
+                        variant="ghost"
+                        small
+                        onClick={() =>
+                          set({
+                            customFonts: theme.customFonts.filter((_, j) => j !== i),
+                            font: theme.font === font.name ? "system" : theme.font,
+                            headingFont: theme.headingFont === font.name ? "system" : theme.headingFont,
+                          })
+                        }
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                  <FontDrop onAdd={(font) => set({ customFonts: [...theme.customFonts, font], font: font.name })} />
+                  <span className="ad-hint">WOFF2, WOFF, TTF or OTF, up to 1.5 MB. Only upload fonts you have a licence to use on a website.</span>
+                </div>
+              </div>
             </div>
           </details>
 
           <details>
-            <summary>Shape and size</summary>
+            <summary>Buttons</summary>
             <div className="ad-stack">
-              <Field label={`Corner roundness: ${theme.radius}px`}>
+              <Field label="Style">
+                <select value={theme.buttonStyle} onChange={(e) => set({ buttonStyle: e.target.value as Theme["buttonStyle"] })}>
+                  <option value="filled">Filled</option>
+                  <option value="outline">Outline</option>
+                  <option value="soft">Soft tint</option>
+                </select>
+              </Field>
+              <Field label="Size">
+                <select value={theme.buttonSize} onChange={(e) => set({ buttonSize: e.target.value as Theme["buttonSize"] })}>
+                  <option value="small">Small</option>
+                  <option value="medium">Medium</option>
+                  <option value="large">Large</option>
+                </select>
+              </Field>
+              <Roundness label="Corner roundness" value={theme.buttonRadius} onChange={(buttonRadius) => set({ buttonRadius })} full="pill" />
+            </div>
+          </details>
+
+          <details>
+            <summary>Calendar dates and times</summary>
+            <div className="ad-stack">
+              <Field label="Available dates look">
+                <select value={theme.dayStyle} onChange={(e) => set({ dayStyle: e.target.value as Theme["dayStyle"] })}>
+                  <option value="soft">Soft tint</option>
+                  <option value="outline">Outline</option>
+                  <option value="plain">Plain number</option>
+                </select>
+              </Field>
+              <Roundness label="Date shape" value={theme.dayRadius} onChange={(dayRadius) => set({ dayRadius })} full="circle" />
+              <Roundness label="Time button shape" value={theme.timeRadius} onChange={(timeRadius) => set({ timeRadius })} full="pill" />
+              <Toggle checked={!theme.colors.date} onChange={(same) => set({ colors: { ...theme.colors, date: same ? "" : theme.colors.primary } })} label="Dates and times use the button color" />
+              {theme.colors.date && <ColorField label="Dates and times color" value={theme.colors.date} onChange={(date) => set({ colors: { ...theme.colors, date } })} />}
+            </div>
+          </details>
+
+          <details>
+            <summary>Card, fields and lines</summary>
+            <div className="ad-stack">
+              <Field label={`Card corner roundness: ${theme.radius}px`}>
                 <input type="range" min={0} max={28} value={theme.radius} onChange={(e) => set({ radius: Number(e.target.value) })} />
+              </Field>
+              <Roundness label="Form field roundness" value={theme.inputRadius} onChange={(inputRadius) => set({ inputRadius })} />
+              <Field label={`Line thickness: ${theme.borderWidth}px`} hint="Borders around the card, fields and buttons. 0 removes them.">
+                <input type="range" min={0} max={3} value={theme.borderWidth} onChange={(e) => set({ borderWidth: Number(e.target.value) })} />
               </Field>
               <Field label={`Card width: ${theme.cardWidth}px`}>
                 <input type="range" min={560} max={1100} step={20} value={theme.cardWidth} onChange={(e) => set({ cardWidth: Number(e.target.value) })} />
