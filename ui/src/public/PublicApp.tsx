@@ -13,7 +13,10 @@ interface Site {
   eventTypes: PublicEventType[];
 }
 
-const embed = new URLSearchParams(window.location.search).has("embed");
+const query = new URLSearchParams(window.location.search);
+const embed = query.has("embed");
+/** Shown inside the admin's design editor: takes the draft design from the parent window and books nothing. */
+const preview = query.has("preview");
 
 function Message(props: { theme: Theme; title: string; children?: React.ReactNode }) {
   return (
@@ -32,9 +35,26 @@ function EventPage(props: { site: Site; event: PublicEventType }) {
     (from: number, to: number) => api<{ slots: number[] }>(`/public/event-types/${event.slug}/slots?from=${from}&to=${to}`).then((r) => r.slots),
     [event.slug],
   );
-  const submit = (request: BookingRequest) =>
-    send<{ booking: BookingView }>("POST", "/public/bookings", { slug: event.slug, ...request }).then((r) => r.booking);
-  return <BookingFlow theme={site.theme} businessName={site.businessName} event={event} loadSlots={loadSlots} submit={submit} embed={embed} />;
+  const submit = async (request: BookingRequest): Promise<BookingView> => {
+    if (preview) {
+      return {
+        token: "preview",
+        status: "confirmed",
+        start: request.start,
+        end: request.start + event.durationMinutes * 60_000,
+        bookerName: request.name,
+        bookerEmail: request.email,
+        bookerTz: request.tz,
+        eventTitle: event.title,
+        eventSlug: event.slug,
+        durationMinutes: event.durationMinutes,
+        locationUrl: "",
+        locationLabel: event.locationLabel,
+      };
+    }
+    return send<{ booking: BookingView }>("POST", "/public/bookings", { slug: event.slug, ...request }).then((r) => r.booking);
+  };
+  return <BookingFlow theme={site.theme} businessName={site.businessName} event={event} loadSlots={loadSlots} submit={submit} embed={embed} preview={preview} />;
 }
 
 function Landing({ site }: { site: Site }) {
@@ -189,8 +209,20 @@ function ManagePage(props: { site: Site; token: string }) {
 
 export default function PublicApp() {
   const path = usePath();
-  const [site, setSite] = useState<Site | null>(null);
+  const [loaded, setSite] = useState<Site | null>(null);
+  const [draftTheme, setDraftTheme] = useState<Theme | null>(null);
   const [failed, setFailed] = useState(false);
+  const site = loaded && draftTheme ? { ...loaded, theme: draftTheme } : loaded;
+
+  useEffect(() => {
+    if (!preview || window.parent === window) return;
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin === window.location.origin && e.data?.bkngTheme) setDraftTheme(mergeDeep(DEFAULT_THEME, e.data.bkngTheme));
+    };
+    window.addEventListener("message", onMessage);
+    window.parent.postMessage({ bkngReady: true }, window.location.origin);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
 
   useEffect(() => {
     api<Site>("/public/site")

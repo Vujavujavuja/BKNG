@@ -25,10 +25,6 @@
   padding: 8px;
   background: transparent;
 }
-.bk-root.bk-preview {
-  min-height: 100%;
-  padding: 32px 16px;
-}
 .bk-bg-image,
 .bk-bg-overlay {
   position: absolute;
@@ -447,12 +443,4 @@
   .bk-main {
     padding: 20px;
   }
-}
-/* The design preview can force the phone layout regardless of window width. */
-.bk-force-mobile .bk-card {
-  grid-template-columns: minmax(0, 1fr);
-}
-.bk-force-mobile .bk-info {
-  border-right: 0;
-  border-bottom: 1px solid var(--bk-border);
 }

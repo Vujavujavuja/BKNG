@@ -24,8 +24,6 @@ export function Shell(props: {
   theme: Theme;
   children: ReactNode;
   embed?: boolean;
-  preview?: boolean;
-  forceMobile?: boolean;
   single?: boolean;
 }) {
   const { theme } = props;
@@ -55,14 +53,8 @@ export function Shell(props: {
   }, [props.embed]);
 
   const background = assetUrl(theme.backgroundAssetId);
-  const classes = [
-    "bk-root",
-    props.embed && "bk-embed",
-    props.preview && "bk-preview",
-    props.forceMobile && "bk-force-mobile",
-  ];
   return (
-    <div ref={rootRef} className={classes.filter(Boolean).join(" ")} style={themeVars(theme) as CSSProperties}>
+    <div ref={rootRef} className={`bk-root ${props.embed ? "bk-embed" : ""}`} style={themeVars(theme) as CSSProperties}>
       {background && !props.embed && (
         <>
           <div className="bk-bg-image" style={{ backgroundImage: `url("${background}")` }} />
@@ -402,8 +394,8 @@ export function BookingFlow(props: {
   loadSlots: SlotLoader;
   submit: (request: BookingRequest) => Promise<BookingView>;
   embed?: boolean;
+  /** Design preview: nothing is really booked and outgoing links are switched off. */
   preview?: boolean;
-  forceMobile?: boolean;
 }) {
   const { theme, event } = props;
   const firstStep = theme.stepOrder === "time-first" ? "time" : "form";
@@ -459,7 +451,7 @@ export function BookingFlow(props: {
   );
 
   return (
-    <Shell theme={theme} embed={props.embed} preview={props.preview} forceMobile={props.forceMobile}>
+    <Shell theme={theme} embed={props.embed}>
       <InfoPanel theme={theme} businessName={props.businessName} event={event} chosen={slot} tz={tz} />
       <div className="bk-main">
         {step === "done" && booking ? (
