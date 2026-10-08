@@ -4,6 +4,10 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "observability": { "enabled": true },
+  // Builds the interface into ./dist before every deploy and dev session.
+  "build": { "command": "npm run build" },
+  // The Worker answers every request itself so it can serve the app under any base path.
+  "assets": { "directory": "./dist", "binding": "ASSETS", "run_worker_first": true },
   // The Deploy to Cloudflare button provisions this database automatically.
   "d1_databases": [
     {
