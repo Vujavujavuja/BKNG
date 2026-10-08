@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { parseIcsBusy } from "../src/lib/ics-parse";
+import { parseIcsBusy, type IcsOptions } from "../src/lib/ics-parse";
 
 const iso = (ts: number) => new Date(ts).toISOString();
-const opts = { defaultTz: "Europe/Belgrade", from: Date.UTC(2026, 9, 1), to: Date.UTC(2026, 11, 1) };
+const opts: IcsOptions = { defaultTz: "Europe/Belgrade", from: Date.UTC(2026, 9, 1), to: Date.UTC(2026, 11, 1) };
 
 const wrap = (...events: string[]) =>
   ["BEGIN:VCALENDAR", "VERSION:2.0", ...events.flatMap((e) => ["BEGIN:VEVENT", ...e.split("\n"), "END:VEVENT"]), "END:VCALENDAR"].join(
