@@ -147,6 +147,68 @@ async function prepareImage(file: File): Promise<Blob> {
   return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob ?? file), type, 0.85));
 }
 
+async function uploadAsset(blob: Blob, type: string): Promise<string> {
+  const res = await fetch(`${BASE}/api/admin/assets`, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": type, "X-Requested-With": "bkng" },
+    body: blob,
+  });
+  const data = (await res.json()) as { id?: string; error?: string };
+  if (!res.ok || !data.id) throw new Error(data.error ?? "The file could not be uploaded.");
+  return data.id;
+}
+
+const FONT_TYPES: Record<string, string> = { woff2: "font/woff2", woff: "font/woff", ttf: "font/ttf", otf: "font/otf" };
+
+/** Drop zone for a font file. Reports the uploaded file's id and a name taken from the file name. */
+export function FontDrop(props: { onAdd: (font: { name: string; assetId: string }) => void }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [over, setOver] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const upload = async (file: File | undefined) => {
+    if (!file) return;
+    const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+    const type = FONT_TYPES[extension];
+    if (!type) return toast("Please choose a font file ending in .woff2, .woff, .ttf or .otf.", true);
+    setBusy(true);
+    try {
+      const assetId = await uploadAsset(file, type);
+      const name = file.name.replace(/\.[^.]+$/, "").replace(/[^A-Za-z0-9 _-]/g, " ").replace(/\s+/g, " ").trim();
+      props.onAdd({ name: name || "My font", assetId });
+    } catch (e) {
+      toastError(e);
+    } finally {
+      setBusy(false);
+      if (input.current) input.current.value = "";
+    }
+  };
+
+  return (
+    <div
+      className={`ad-drop ${over ? "is-over" : ""}`}
+      role="button"
+      tabIndex={0}
+      onClick={() => input.current?.click()}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && input.current?.click()}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setOver(true);
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setOver(false);
+        void upload(e.dataTransfer.files[0]);
+      }}
+    >
+      <span className="ad-muted">{busy ? "Uploading…" : "Drop a font file here, or click to choose one"}</span>
+      <input ref={input} type="file" accept=".woff2,.woff,.ttf,.otf" hidden onChange={(e) => void upload(e.target.files?.[0])} />
+    </div>
+  );
+}
+
 export function ImageDrop(props: { label: string; assetId: string; onChange: (assetId: string) => void; hint?: string }) {
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
@@ -158,15 +220,7 @@ export function ImageDrop(props: { label: string; assetId: string; onChange: (as
     setBusy(true);
     try {
       const blob = await prepareImage(file);
-      const res = await fetch(`${BASE}/api/admin/assets`, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": blob.type, "X-Requested-With": "bkng" },
-        body: blob,
-      });
-      const data = (await res.json()) as { id?: string; error?: string };
-      if (!res.ok || !data.id) throw new Error(data.error ?? "The image could not be uploaded.");
-      props.onChange(data.id);
+      props.onChange(await uploadAsset(blob, blob.type));
     } catch (e) {
       toastError(e);
     } finally {
