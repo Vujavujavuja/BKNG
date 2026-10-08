@@ -4,6 +4,8 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "observability": { "enabled": true },
+  // Keep the free workers.dev address switched on, so a fresh install is reachable before any domain is connected.
+  "workers_dev": true,
   // Builds the interface into ./dist before every deploy and dev session.
   "build": { "command": "npm run build" },
   // The Worker answers every request itself so it can serve the app under any base path.
