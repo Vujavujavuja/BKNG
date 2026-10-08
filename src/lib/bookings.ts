@@ -61,7 +61,12 @@ export function toAdminBooking(row: BookingRow, eventType: EventType): AdminBook
   return {
     ...toBookingView(row, eventType),
     id: row.id,
-    answers: JSON.parse(row.answers) as Record<string, string>,
+    // Keyed by question text, so the admin sees what was asked without looking it up.
+    answers: Object.fromEntries(
+      eventType.config.questions
+        .map((q) => [q.label, (JSON.parse(row.answers) as Record<string, string>)[q.id]] as const)
+        .filter(([, value]) => value),
+    ) as Record<string, string>,
     cancelReason: row.cancel_reason,
     createdAt: row.created_at,
   };
