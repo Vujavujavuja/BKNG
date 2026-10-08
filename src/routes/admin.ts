@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { DEFAULT_TEMPLATES, type EmailStyle, type EmailTemplate, type TemplateKind } from "../../shared/templates";
-import { DEFAULT_THEME, mergeDeep, type Theme } from "../../shared/theme";
+import { cleanFontName, DEFAULT_THEME, mergeDeep, type Theme } from "../../shared/theme";
 import {
   DEFAULT_EVENT_CONFIG,
   EMAIL_SECRET_PATHS,
@@ -322,6 +322,12 @@ adminRoutes.put("/settings/site", async (c) => {
   const theme = mergeDeep<Theme>(DEFAULT_THEME, await c.req.json());
   // The CSS is written into a <style> tag, so it must not be able to close it.
   theme.customCss = String(theme.customCss).slice(0, 20_000).replace(/<\/?style/gi, "");
+  theme.customFonts = (Array.isArray(theme.customFonts) ? theme.customFonts : [])
+    .map((f) => ({ name: cleanFontName(String(f?.name ?? "")), assetId: String(f?.assetId ?? "") }))
+    .filter((f) => f.name && /^[0-9a-f]+$/.test(f.assetId))
+    .slice(0, 8);
+  theme.font = cleanFontName(theme.font) || "system";
+  theme.headingFont = cleanFontName(theme.headingFont) || "system";
   await setSetting(c.env.DB, "site", theme);
   return c.json({ ok: true });
 });
@@ -359,13 +365,23 @@ adminRoutes.put("/settings/google", async (c) => {
 
 // ---- Images ----
 
-const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif", "image/svg+xml"];
+const UPLOAD_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+  "image/svg+xml",
+  "font/woff2",
+  "font/woff",
+  "font/ttf",
+  "font/otf",
+];
 
 adminRoutes.post("/assets", async (c) => {
   const type = (c.req.header("Content-Type") ?? "").split(";")[0]!.trim();
-  if (!IMAGE_TYPES.includes(type)) throw new InputError("Please use a PNG, JPG, WebP, GIF or SVG image.");
+  if (!UPLOAD_TYPES.includes(type)) throw new InputError("Please use a PNG, JPG, WebP, GIF or SVG image, or a WOFF2, WOFF, TTF or OTF font.");
   const data = await c.req.arrayBuffer();
-  if (data.byteLength > 1_500_000) throw new InputError("That image is too large. Please use one under 1.5 MB.");
+  if (data.byteLength > 1_500_000) throw new InputError("That file is too large. Please use one under 1.5 MB.");
   const id = randomId();
   await c.env.DB.prepare(`INSERT INTO assets (id, content_type, data, created_at) VALUES (?, ?, ?, ?)`).bind(id, type, data, Date.now()).run();
   return c.json({ id });
