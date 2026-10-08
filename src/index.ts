@@ -77,6 +77,8 @@ export default {
     if (/\.[a-z0-9]+$/i.test(path)) {
       const asset = await env.ASSETS.fetch(new Request(new URL(path, url.origin), { headers: request.headers }));
       if (asset.status !== 404) return asset;
+      // A missing script or stylesheet must fail as such, not come back as the HTML shell.
+      if (path.startsWith("/assets/")) return new Response("Not found", { status: 404 });
     }
 
     // Everything else is a page: serve the app shell with the base path and theme baked in,
