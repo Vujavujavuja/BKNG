@@ -8,7 +8,17 @@ export interface ThemeColors {
   primary: string;
   primaryText: string;
   border: string;
+  /** Available and selected dates and times. Empty means "same as primary". */
+  date: string;
 }
+
+export interface CustomFont {
+  name: string;
+  assetId: string;
+}
+
+/** Roundness sliders stop here; this value and above means fully round (pill or circle). */
+export const ROUND_MAX = 32;
 
 export interface ThemeTexts {
   landingTitle: string;
@@ -38,10 +48,20 @@ export interface Theme {
   backgroundAssetId: string;
   /** 0-100: how strongly the background color covers the background image. */
   backgroundOverlay: number;
+  /** "system", a Google Fonts family name, or the name of an uploaded font. */
   font: string;
   headingFont: string;
+  customFonts: CustomFont[];
   fontSize: number;
   radius: number;
+  buttonStyle: "filled" | "outline" | "soft";
+  buttonSize: "small" | "medium" | "large";
+  buttonRadius: number;
+  dayStyle: "soft" | "outline" | "plain";
+  dayRadius: number;
+  timeRadius: number;
+  inputRadius: number;
+  borderWidth: number;
   shadow: boolean;
   cardWidth: number;
   layout: "split" | "stacked";
@@ -65,13 +85,23 @@ export const DEFAULT_THEME: Theme = {
     primary: "#2f5bea",
     primaryText: "#ffffff",
     border: "#e3e6ec",
+    date: "",
   },
   backgroundAssetId: "",
   backgroundOverlay: 0,
   font: "system",
   headingFont: "system",
+  customFonts: [],
   fontSize: 15,
   radius: 12,
+  buttonStyle: "filled",
+  buttonSize: "medium",
+  buttonRadius: 7,
+  dayStyle: "soft",
+  dayRadius: 7,
+  timeRadius: 7,
+  inputRadius: 7,
+  borderWidth: 1,
   shadow: true,
   cardWidth: 880,
   layout: "split",
@@ -126,17 +156,36 @@ export const FONTS = [
 
 const SYSTEM_STACK = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
+/** Font names end up inside CSS and URLs, so keep them to plain characters. */
+export const cleanFontName = (name: string) => name.replace(/[^A-Za-z0-9 _-]/g, "").trim().slice(0, 60);
+
 export function fontStack(font: string): string {
-  return font === "system" ? SYSTEM_STACK : `"${font}", ${SYSTEM_STACK}`;
+  const name = cleanFontName(font);
+  return !name || name === "system" ? SYSTEM_STACK : `"${name}", ${SYSTEM_STACK}`;
 }
 
-/** Google Fonts stylesheet for the fonts a theme uses, or "" when only system fonts are used. */
+/** Google Fonts stylesheet for the fonts a theme uses, or "" when none need loading from Google. */
 export function fontHref(theme: Theme): string {
-  const families = [...new Set([theme.font, theme.headingFont])].filter((f) => f !== "system");
+  const uploaded = new Set(theme.customFonts.map((f) => cleanFontName(f.name)));
+  const families = [...new Set([theme.font, theme.headingFont].map(cleanFontName))].filter(
+    (f) => f && f !== "system" && !uploaded.has(f),
+  );
   if (!families.length) return "";
   const query = families.map((f) => `family=${f.replace(/ /g, "+")}:wght@400;500;600;700`).join("&");
   return `https://fonts.googleapis.com/css2?${query}&display=swap`;
 }
+
+/** @font-face rules for uploaded fonts. */
+export function fontFaceCss(theme: Theme, urlFor: (assetId: string) => string): string {
+  return theme.customFonts
+    .filter((f) => cleanFontName(f.name) && /^[0-9a-f]+$/.test(f.assetId))
+    .map((f) => `@font-face{font-family:"${cleanFontName(f.name)}";src:url("${urlFor(f.assetId)}");font-display:swap}`)
+    .join("\n");
+}
+
+const round = (value: number) => (value >= ROUND_MAX ? "999px" : `${Math.max(0, value)}px`);
+
+const BUTTON_PADDING = { small: "8px 14px", medium: "11px 18px", large: "14px 26px" };
 
 export function themeVars(theme: Theme): Record<string, string> {
   const c = theme.colors;
@@ -148,7 +197,14 @@ export function themeVars(theme: Theme): Record<string, string> {
     "--bk-primary": c.primary,
     "--bk-primary-text": c.primaryText,
     "--bk-border": c.border,
+    "--bk-date": c.date || c.primary,
     "--bk-radius": `${theme.radius}px`,
+    "--bk-button-radius": round(theme.buttonRadius),
+    "--bk-button-padding": BUTTON_PADDING[theme.buttonSize] ?? BUTTON_PADDING.medium,
+    "--bk-day-radius": round(theme.dayRadius),
+    "--bk-time-radius": round(theme.timeRadius),
+    "--bk-input-radius": round(theme.inputRadius),
+    "--bk-border-width": `${theme.borderWidth}px`,
     "--bk-font": fontStack(theme.font),
     "--bk-heading-font": fontStack(theme.headingFont),
     "--bk-font-size": `${theme.fontSize}px`,
