@@ -43,7 +43,7 @@
   width: 100%;
   max-width: var(--bk-card-width);
   background: var(--bk-card);
-  border: 1px solid var(--bk-border);
+  border: var(--bk-border-width) solid var(--bk-border);
   border-radius: var(--bk-radius);
   box-shadow: var(--bk-shadow);
   overflow: hidden;
@@ -57,7 +57,7 @@
 }
 .bk-info {
   padding: 28px;
-  border-right: 1px solid var(--bk-border);
+  border-right: var(--bk-border-width) solid var(--bk-border);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -65,7 +65,7 @@
 }
 .bk-stacked .bk-info {
   border-right: 0;
-  border-bottom: 1px solid var(--bk-border);
+  border-bottom: var(--bk-border-width) solid var(--bk-border);
 }
 .bk-main {
   padding: 28px;
@@ -141,8 +141,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--bk-border);
-  border-radius: calc(var(--bk-radius) * 0.6);
+  border: var(--bk-border-width) solid var(--bk-border);
+  border-radius: var(--bk-button-radius);
   background: transparent;
   color: var(--bk-text);
   cursor: pointer;
@@ -167,10 +167,11 @@
 }
 .bk-day {
   aspect-ratio: 1;
-  max-height: 46px;
-  width: 100%;
+  width: min(100%, 46px);
+  justify-self: center;
+  padding: 0;
   border: 0;
-  border-radius: calc(var(--bk-radius) * 0.6);
+  border-radius: var(--bk-day-radius);
   background: transparent;
   color: var(--bk-muted);
   font: inherit;
@@ -179,18 +180,27 @@
 }
 .bk-day.bk-open {
   opacity: 1;
-  color: var(--bk-primary);
-  background: color-mix(in srgb, var(--bk-primary) 10%, transparent);
+  color: var(--bk-date);
+  background: color-mix(in srgb, var(--bk-date) 10%, transparent);
   font-weight: 600;
   cursor: pointer;
 }
 .bk-day.bk-open:hover {
-  background: color-mix(in srgb, var(--bk-primary) 20%, transparent);
+  background: color-mix(in srgb, var(--bk-date) 20%, transparent);
 }
-.bk-day.bk-selected,
-.bk-day.bk-selected:hover {
-  background: var(--bk-primary);
+[data-day="outline"] .bk-day.bk-open {
+  background: transparent;
+  box-shadow: inset 0 0 0 max(1.5px, var(--bk-border-width)) var(--bk-date);
+}
+[data-day="plain"] .bk-day.bk-open {
+  background: transparent;
+  color: var(--bk-text);
+}
+.bk-root .bk-day.bk-selected,
+.bk-root .bk-day.bk-selected:hover {
+  background: var(--bk-date);
   color: var(--bk-primary-text);
+  box-shadow: none;
 }
 .bk-times-title {
   margin: 20px 0 10px;
@@ -206,8 +216,8 @@
 }
 .bk-time {
   padding: 10px 6px;
-  border: 1px solid var(--bk-border);
-  border-radius: calc(var(--bk-radius) * 0.6);
+  border: max(1px, var(--bk-border-width)) solid var(--bk-border);
+  border-radius: var(--bk-time-radius);
   background: transparent;
   color: var(--bk-text);
   font: inherit;
@@ -216,11 +226,11 @@
   cursor: pointer;
 }
 .bk-time:hover {
-  border-color: var(--bk-primary);
+  border-color: var(--bk-date);
 }
 .bk-time.bk-selected {
-  background: var(--bk-primary);
-  border-color: var(--bk-primary);
+  background: var(--bk-date);
+  border-color: var(--bk-date);
   color: var(--bk-primary-text);
 }
 .bk-muted {
@@ -261,8 +271,8 @@
 .bk-field select {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--bk-border);
-  border-radius: calc(var(--bk-radius) * 0.6);
+  border: var(--bk-border-width) solid var(--bk-border);
+  border-radius: min(var(--bk-input-radius), 22px);
   background: var(--bk-card);
   color: var(--bk-text);
   font: inherit;
@@ -309,15 +319,24 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 11px 18px;
-  border: 1px solid var(--bk-primary);
-  border-radius: calc(var(--bk-radius) * 0.6);
+  padding: var(--bk-button-padding);
+  border: max(1px, var(--bk-border-width)) solid var(--bk-primary);
+  border-radius: var(--bk-button-radius);
   background: var(--bk-primary);
   color: var(--bk-primary-text);
   font: inherit;
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
+}
+[data-button="outline"] .bk-button:not(.bk-secondary):not(.bk-danger) {
+  background: transparent;
+  color: var(--bk-primary);
+}
+[data-button="soft"] .bk-button:not(.bk-secondary):not(.bk-danger) {
+  background: color-mix(in srgb, var(--bk-primary) 14%, transparent);
+  border-color: transparent;
+  color: var(--bk-primary);
 }
 .bk-button:disabled {
   opacity: 0.5;
@@ -336,7 +355,7 @@
 .bk-error {
   margin: 0 0 14px;
   padding: 10px 12px;
-  border-radius: calc(var(--bk-radius) * 0.6);
+  border-radius: min(var(--bk-input-radius), 22px);
   background: color-mix(in srgb, #c0392b 12%, var(--bk-card));
   color: #a3271b;
   font-weight: 500;
@@ -362,8 +381,8 @@
 .bk-summary {
   width: 100%;
   padding: 14px 16px;
-  border: 1px solid var(--bk-border);
-  border-radius: calc(var(--bk-radius) * 0.6);
+  border: var(--bk-border-width) solid var(--bk-border);
+  border-radius: min(var(--bk-input-radius), 22px);
 }
 .bk-summary strong {
   display: block;
@@ -391,8 +410,8 @@
   align-items: center;
   gap: 12px;
   padding: 16px;
-  border: 1px solid var(--bk-border);
-  border-radius: calc(var(--bk-radius) * 0.6);
+  border: var(--bk-border-width) solid var(--bk-border);
+  border-radius: min(var(--bk-input-radius), 22px);
   color: var(--bk-text);
   text-decoration: none;
 }
@@ -437,7 +456,7 @@
   }
   .bk-info {
     border-right: 0;
-    border-bottom: 1px solid var(--bk-border);
+    border-bottom: var(--bk-border-width) solid var(--bk-border);
     padding: 20px;
   }
   .bk-main {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
-import { fontHref, themeVars, type Theme } from "../../../shared/theme";
+import { fontFaceCss, fontHref, themeVars, type Theme } from "../../../shared/theme";
 import type { BookingView, PublicEventType } from "../../../shared/types";
 import { assetUrl, BASE } from "../lib/api";
 import { allTimezones, browserTimezone, dateKey, formatDate, formatDateKey, formatTime, MONTHS, WEEKDAYS } from "../lib/time";
@@ -53,14 +53,16 @@ export function Shell(props: {
   }, [props.embed]);
 
   const background = assetUrl(theme.backgroundAssetId);
+  const fontFaces = fontFaceCss(theme, assetUrl);
   return (
-    <div ref={rootRef} className={`bk-root ${props.embed ? "bk-embed" : ""}`} style={themeVars(theme) as CSSProperties}>
+    <div ref={rootRef} className={`bk-root ${props.embed ? "bk-embed" : ""}`} data-button={theme.buttonStyle} data-day={theme.dayStyle} style={themeVars(theme) as CSSProperties}>
       {background && !props.embed && (
         <>
           <div className="bk-bg-image" style={{ backgroundImage: `url("${background}")` }} />
           <div className="bk-bg-overlay" style={{ opacity: theme.backgroundOverlay / 100 }} />
         </>
       )}
+      {fontFaces && <style>{fontFaces}</style>}
       {theme.customCss && <style>{theme.customCss}</style>}
       <div className={`bk-card ${props.single ? "bk-single" : theme.layout === "stacked" ? "bk-stacked" : ""}`}>{props.children}</div>
       {!theme.hideBranding && (
