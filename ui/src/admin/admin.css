@@ -693,6 +693,7 @@
     overflow-x: auto;
   }
   .ad-brand {
+    flex: none;
     padding: 0 10px 0 4px;
   }
   .ad-nav-foot {
