@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ButtonHTMLAttributes, type DragEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ButtonHTMLAttributes, type DragEvent, type ReactNode } from "react";
 import { api, assetUrl, BASE } from "../lib/api";
 
 // ---- Toasts ----
@@ -65,13 +65,11 @@ export function useLoad<T>(path: string) {
 /** Tracks an edited copy of saved data and whether it differs. */
 export function useDraft<T>(saved: T | null) {
   const [draft, setDraft] = useState<T | null>(saved);
-  const savedJson = useRef("");
+  const savedJson = useMemo(() => JSON.stringify(saved), [saved]);
   useEffect(() => {
-    if (saved === null) return;
-    savedJson.current = JSON.stringify(saved);
-    setDraft(saved);
+    if (saved !== null) setDraft(saved);
   }, [saved]);
-  const dirty = draft !== null && JSON.stringify(draft) !== savedJson.current;
+  const dirty = draft !== null && saved !== null && JSON.stringify(draft) !== savedJson;
   return { draft, setDraft: setDraft as (value: T) => void, dirty };
 }
 
