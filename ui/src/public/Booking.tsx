@@ -280,7 +280,6 @@ export interface FormValues {
   name: string;
   email: string;
   answers: Record<string, string | boolean>;
-  website: string;
 }
 
 function DetailsFields(props: { theme: Theme; event: PublicEventType; values: FormValues; onChange: (v: FormValues) => void }) {
@@ -333,8 +332,6 @@ function DetailsFields(props: { theme: Theme; event: PublicEventType; values: Fo
           </label>
         );
       })}
-      {/* Hidden from people; bots that fill it are ignored by the server. */}
-      <input className="bk-trap" tabIndex={-1} autoComplete="off" name="website" aria-hidden="true" value={values.website} onChange={(e) => onChange({ ...values, website: e.target.value })} />
     </>
   );
 }
@@ -386,7 +383,6 @@ export interface BookingRequest {
   email: string;
   tz: string;
   answers: Record<string, string | boolean>;
-  website: string;
 }
 
 export function BookingFlow(props: {
@@ -404,7 +400,7 @@ export function BookingFlow(props: {
   const [step, setStep] = useState<"time" | "form" | "done">(firstStep);
   const [tz, setTz] = useState(browserTimezone);
   const [slot, setSlot] = useState<number | null>(null);
-  const [values, setValues] = useState<FormValues>({ name: "", email: "", answers: {}, website: "" });
+  const [values, setValues] = useState<FormValues>({ name: "", email: "", answers: {} });
   const [booking, setBooking] = useState<BookingView | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);

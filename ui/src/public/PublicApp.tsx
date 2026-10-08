@@ -52,7 +52,9 @@ function EventPage(props: { site: Site; event: PublicEventType }) {
         locationLabel: event.locationLabel,
       };
     }
-    return send<{ booking: BookingView }>("POST", "/public/bookings", { slug: event.slug, ...request }).then((r) => r.booking);
+    const result = await send<{ booking?: BookingView }>("POST", "/public/bookings", { slug: event.slug, ...request });
+    if (!result.booking) throw new Error("The booking didn't go through. Please try again.");
+    return result.booking;
   };
   return <BookingFlow theme={site.theme} businessName={site.businessName} event={event} loadSlots={loadSlots} submit={submit} embed={embed} preview={preview} />;
 }

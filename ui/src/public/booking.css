@@ -300,13 +300,6 @@
   margin-top: 0.3em;
   accent-color: var(--bk-primary);
 }
-.bk-trap {
-  position: absolute;
-  left: -9999px;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-}
 .bk-actions {
   display: flex;
   gap: 8px;

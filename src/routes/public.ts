@@ -66,8 +66,6 @@ publicRoutes.get("/event-types/:slug/slots", async (c) => {
 
 publicRoutes.post("/bookings", async (c) => {
   const body = await c.req.json<Record<string, unknown>>().catch(() => ({}) as Record<string, unknown>);
-  // Bots fill every field; people never see this one.
-  if (body.website) return c.json({ token: "ok" });
   const ip = c.req.header("CF-Connecting-IP") ?? "local";
   if (!(await rateLimit(c.env.DB, `book:${ip}`, 10, 3_600_000))) {
     return c.json({ error: "Too many bookings from this network. Please try again later." }, 429);
