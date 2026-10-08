@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bkng",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "observability": { "enabled": true },
+  // The Deploy to Cloudflare button provisions this database automatically.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bkng"
+    }
+  ],
+  // One trigger for reminders and calendar feed refreshes (free plan allows 5 per account).
+  "triggers": { "crons": ["*/15 * * * *"] }
+}
