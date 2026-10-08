@@ -197,6 +197,9 @@ async function sendSmtp(cfg: EmailSettings, _from: string, msg: OutgoingEmail): 
   };
 
   try {
+    await socket.opened.catch(() => {
+      throw new Error(`Could not connect to the mail server at ${host}:${port}.`);
+    });
     const greeting = await read();
     if (greeting.code !== 220) throw new Error(`Mail server refused the connection: ${greeting.text}`);
     const hello = `EHLO ${cfg.fromEmail.split("@")[1] ?? "localhost"}`;
